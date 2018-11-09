@@ -72,7 +72,9 @@ class FacebookResponse(object):
     def json(self):
         """Returns the response body -- in json if possible."""
         try:
-            return json.loads(self._body)
+            res = json.loads(self._body)
+            res['HEADER'] = dict(self._headers._store)
+            return res
         except (TypeError, ValueError):
             return self._body
 
@@ -758,6 +760,8 @@ class Cursor(object):
             api=self._api,
             target_class=self._target_objects_class,
         )
+        self._internal_response = None
+
 
     def __repr__(self):
         return str(self._queue)
@@ -820,11 +824,13 @@ class Cursor(object):
         ):
             self.params['summary'] = True
 
-        response = self._api.call(
+        self._internal_response = self._api.call(
             'GET',
             self._path,
             params=self.params,
-        ).json()
+        )
+
+        response = self._internal_response.json()
 
         if 'paging' in response and 'next' in response['paging']:
             self._path = response['paging']['next']
